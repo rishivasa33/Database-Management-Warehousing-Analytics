@@ -25,9 +25,9 @@ public class DBConnection {
         return localDbConnection;
     }
 
-    public void closeConnection(Connection localDbConnection, String temp) throws SQLException {
+    public void closeConnection(Connection localDbConnection, String transactionName) throws SQLException {
         if (localDbConnection != null) {
-            System.out.println("Closing DB Connection for: "+temp);
+            System.out.println("Closing DB Connection for: "+transactionName);
             localDbConnection.close();
         }
     }

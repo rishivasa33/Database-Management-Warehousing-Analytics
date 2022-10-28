@@ -3,76 +3,91 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-public class Transaction implements Runnable {
-    private final ReadWriteLock dbLock = new ReentrantReadWriteLock();
-    private final Lock writeLock = dbLock.writeLock();
+public class Transaction extends Thread {
+    private static final Lock dbLock = new ReentrantLock();
     private String transactionName;
-    private Connection localDbConnection;
     private String queriesToExecute;
+    private Connection localDbConnection = null;
+    private DBConnection localDB = null;
 
-    public Transaction(String transaction, String queries, Connection localDbConnection) {
+    public Transaction(String transaction, String queries) {
         this.transactionName = transaction;
         this.queriesToExecute = queries;
-        this.localDbConnection = localDbConnection;
         System.out.println("\nCreating " + transaction + " with queries: \n" + queries);
     }
 
 
     @Override
     public void run() {
-        try {
-            //Acquire Lock
-            acquireLock(this);
-            //Perform Operations
-            operate();
-        } catch (Exception e) {
+        synchronized (this) {
             try {
-                System.out.println(transactionName + " failed. Rolling Back");
-                localDbConnection.rollback();
-            } catch (SQLException ex) {
+                //Open Connection
+                localDB = new DBConnection();
+                localDbConnection = localDB.openConnectionWithMultiQueries();
+                //Acquire Lock
+                acquireLock(this);
+                //Perform Operations
+                operate();
+                //Release Lock
+                releaseLock();
+            } catch (Exception e) {
+                try {
+                    System.out.println(transactionName + " failed. Rolling Back");
+                    localDbConnection.rollback();
+                } catch (SQLException ex) {
+                    e.printStackTrace();
+                    throw new RuntimeException(ex);
+                }
                 e.printStackTrace();
-                throw new RuntimeException(ex);
+            } finally {
+                //Release Lock
+                releaseLock();
+                //Close Connections
+                try {
+                    localDB.closeConnection(localDbConnection, transactionName);
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
             }
-            e.printStackTrace();
-        } finally {
-            //Release Lock
-            releaseLock();
+            System.out.println(transactionName + " Exiting...");
         }
-        System.out.println(transactionName + " Exiting...");
     }
 
-    //Reference Taken from: https://www.baeldung.com/java-concurrent-locks
+    //Reference Taken from: https://www.baeldung.com/java-concurrent-locks & https://www.geeksforgeeks.org/wait-method-in-java-with-examples/
     private void acquireLock(Transaction transaction) throws InterruptedException {
-        //Check  if lock is free
-        //if(dbLock.){
-            System.out.println("\n" + transaction.transactionName + " is acquiring Lock");
-            writeLock.lock();
-        //} else{
-          //  System.out.println("\n" + transaction.transactionName + " is waiting to acquire Lock");
-            //Thread.sleep(1000);
-        //}
+        synchronized (this) {
+            while(true) {
+                if (dbLock.tryLock()) {
+                    System.out.println("\n" + transactionName + " is acquiring Lock");
+                    dbLock.lock();
+                    break;
+                } else {
+                    System.out.println(transactionName + " is Waiting!!!!!!");
+                    wait(1000);
+                }
+            }
+        }
     }
-
 
     private void operate() {
-        try {
-            System.out.println("\nOperating " + transactionName);
-            Statement transactionStatement = localDbConnection.createStatement();
-            boolean hasMoreResults = transactionStatement.execute(queriesToExecute);
-            printResults(transactionStatement, hasMoreResults);
-            localDbConnection.commit();
-        } catch (SQLException e) {
-            e.printStackTrace();
+        synchronized (this) {
+            try {
+                System.out.println("\nOperating " + transactionName);
+                Statement transactionStatement = localDbConnection.createStatement();
+                boolean hasMoreResults = transactionStatement.execute(queriesToExecute);
+                printResults(transactionStatement, hasMoreResults);
+                localDbConnection.commit();
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
         }
     }
 
 
     //Reference Taken from: https://stackoverflow.com/questions/10797794/multiple-queries-executed-in-java-in-single-statement
-    private static void printResults(Statement transactionStatement, boolean hasMoreResults) throws SQLException {
+    private void printResults(Statement transactionStatement, boolean hasMoreResults) throws SQLException {
         System.out.println("\nSelect Initial Data: ");
         while (hasMoreResults || transactionStatement.getUpdateCount() != -1) {
             if (hasMoreResults) {
@@ -98,8 +113,11 @@ public class Transaction implements Runnable {
 
 
     private void releaseLock() {
-        System.out.println("\n" + transactionName + " is releasing Lock");
-        writeLock.unlock();
+        synchronized (this) {
+            System.out.println("\n" + transactionName + " is releasing Lock");
+            dbLock.unlock();
+            notifyAll();
+        }
     }
 
 }
