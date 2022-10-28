@@ -65,7 +65,7 @@ public class Transaction extends Thread {
                     break;
                 } else {
                     System.out.println(transactionName + " is Waiting!!!!!!");
-                    wait(1000);
+                    transaction.wait(1000);
                 }
             }
         }
@@ -112,7 +112,7 @@ public class Transaction extends Thread {
     }
 
 
-    private void releaseLock() {
+    private void releaseLock() throws IllegalMonitorStateException{
         synchronized (this) {
             System.out.println("\n" + transactionName + " is releasing Lock");
             dbLock.unlock();
