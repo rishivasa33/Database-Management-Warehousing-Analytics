@@ -114,8 +114,10 @@ public class Transaction extends Thread {
 
     private void releaseLock() throws IllegalMonitorStateException{
         synchronized (this) {
-            System.out.println("\n" + transactionName + " is releasing Lock");
             dbLock.unlock();
+            if(((ReentrantLock) dbLock).getHoldCount() == 0) {
+                System.out.println("\n" + transactionName + " has released Lock");
+            }
             notifyAll();
         }
     }
