@@ -1,0 +1,143 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databases>
+    <database type="local" name="a2_dist_b00902815" url="localhost" port="3306" username="root" password="root" >
+        <tables>
+            <table name="park_master">
+                <columns>
+                    <column name="PARK_ID" primary_key="true">
+                        <columnId>1</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                    <column name="PARK_NAME">
+                        <columnId>2</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>200</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="PARK_REGION">
+                        <columnId>3</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>45</size>
+                        <nullable>true</nullable>
+                    </column>
+                </columns>
+            </table>
+            <table name="park_amenities">
+                <columns>
+                    <column name="AMENITY_ID" primary_key="true">
+                        <columnId>1</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                    <column name="AMENITY_NAME">
+                        <columnId>2</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>80</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="PARK_ID">
+                        <columnId>3</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="ICONS_ICON_ID">
+                        <columnId>4</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                </columns>
+            </table>
+        </tables>
+    </database>
+    <database type="remote" name="a2_dist_b00902815" url="34.93.116.20" port="3306" username="root" password="root_B00902815" >
+        <tables>
+            <table name="icons">
+                <columns>
+                    <column name="ICON_ID" primary_key="true">
+                        <columnId>1</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                    <column name="ICON_NAME">
+                        <columnId>2</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>80</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="ICON_IMAGE">
+                        <columnId>3</columnId>
+                        <datatype>BLOB</datatype>
+                        <nullable>true</nullable>
+                    </column>
+                </columns>
+            </table>
+            <table name="events">
+                <columns>
+                    <column name="EVENT_ID" primary_key="true">
+                        <columnId>1</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                    <column name="EVENT_NAME">
+                        <columnId>2</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>120</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="EVENT_DATE">
+                        <columnId>3</columnId>
+                        <datatype>DATE</datatype>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="TICKET_PRICE">
+                        <columnId>4</columnId>
+                        <datatype>DECIMAL</datatype>
+                        <size>(15,2)</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="PARK_MASTER_PARK_ID">
+                        <columnId>5</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                </columns>
+            </table>
+            <table name="advisories">
+                <columns>
+                    <column name="ADVISORY_ID" primary_key="true">
+                        <columnId>1</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                    <column name="ADVISORY_TITLE">
+                        <columnId>2</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>80</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="ADVISORY_BODY">
+                        <columnId>3</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>500</size>
+                        <nullable>true</nullable>
+                    </column>
+                    <column name="PARK_ID">
+                        <columnId>4</columnId>
+                        <datatype>VARCHAR</datatype>
+                        <size>40</size>
+                        <nullable>false</nullable>
+                    </column>
+                </columns>
+            </table>
+        </tables>
+    </database>
+</databases>
