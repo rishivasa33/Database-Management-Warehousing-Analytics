@@ -71,7 +71,7 @@ public class Transaction extends Thread {
         }
     }
 
-    private void operate() {
+    private void operate() throws SQLException {
         synchronized (this) {
             try {
                 System.out.println("\nOperating " + transactionName);
@@ -80,6 +80,8 @@ public class Transaction extends Thread {
                 printResults(transactionStatement, hasMoreResults);
                 localDbConnection.commit();
             } catch (SQLException e) {
+                System.out.println(transactionName + " failed. Rolling Back");
+                localDbConnection.rollback();
                 e.printStackTrace();
             }
         }
