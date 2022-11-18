@@ -1,5 +1,3 @@
-import com.kwabenaberko.newsapilib.models.Source;
-
 public class NewsModel {
     private String title;
     private String author;

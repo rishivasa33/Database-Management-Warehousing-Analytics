@@ -1,100 +1,58 @@
-import com.kwabenaberko.newsapilib.NewsApiClient;
-import com.kwabenaberko.newsapilib.models.Article;
-import com.kwabenaberko.newsapilib.models.request.EverythingRequest;
-import com.kwabenaberko.newsapilib.models.response.ArticleResponse;
-
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import static java.lang.Thread.sleep;
-
 public class NewsExtraction {
-    static List<NewsModel> newsList;
-
 
     public static void main(String[] args) {
 
         List<String> keywords = List.of("Canada", "Halifax", "hockey", "hurricane", "electricity", "house", "inflation");
-
+        NewsTransformation newsTransformation = new NewsTransformation();
+        NewsApiHelper newsAPI = new NewsApiHelper();
         for (String keyword : keywords) {
-            newsList = new ArrayList<>();
-            //get News Articles related to the keywords from NewsAPI
-            getArticles(keyword);
-            //Create New File for each keyword
-            writeNewsDetailsToTextFile(keyword);
+            String apiResponse;
+            File rawNewsFile;
+
+            //get News Articles related to the keywords from NewsAPI. NOTE: Change APIKey here
+            apiResponse = newsAPI.callNewsApiToGetArticles(keyword, "431acb67574942b19f2280cbe593fe8a");
+
+            //Extract the API response into new files for each keyword
+            rawNewsFile = extractNewsToFile(keyword, apiResponse);
+
+            //Transform and clean the extracted data in the files
+            newsTransformation.transformAndCleanNewsFile(keyword, rawNewsFile);
         }
-        System.exit(0);
+
+        //Load the data into MongoDB collections
+        NewsLoading newsLoader = new NewsLoading();
+        newsLoader.loadNewsCollection(keywords);
     }
 
-    private static void writeNewsDetailsToTextFile(String keyword) {
-        File newsFile;
-        FileWriter fileWriter;
-
-        //Adding one-second sleep as the anonymous inner class to fetch News from NewsAPI executes asynchronously
-        try {
-            sleep(2000);
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+    private static File extractNewsToFile(String keyword, String apiResponse) {
+        //Reference: https://stackoverflow.com/questions/35132693/set-encoding-as-utf-8-for-a-filewriter to resolve issue of MalformedInputException while loading data to MongoDB
+        File newsFile = null;
+        Writer fileWriter;
 
         try {
-            newsFile = new File(keyword + ".txt");
+            newsFile = new File(keyword + ".json");
             if (newsFile.createNewFile()) {
                 System.out.println("New File Created: " + newsFile.getName() + " for Keyword: " + keyword);
             } else {
-                fileWriter = new FileWriter(newsFile.getName());
+                fileWriter = new OutputStreamWriter(new FileOutputStream(newsFile.getName()), StandardCharsets.UTF_8);
                 fileWriter.close();
                 System.out.println("File Already Exists. File reset and overwritten for Keyword: " + keyword);
             }
-            fileWriter = new FileWriter(newsFile.getName(), true);
-            fileWriter.write(newsList.toString());
+            fileWriter = new OutputStreamWriter(new FileOutputStream(newsFile.getName()), StandardCharsets.UTF_8);
+            fileWriter.write(apiResponse);
             fileWriter.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private static void getArticles(String keyword) {
-        NewsApiClient newsApiClient = new NewsApiClient("431acb67574942b19f2280cbe593fe8a");
-
-        newsApiClient.getEverything(
-                new EverythingRequest.Builder().q(keyword).build(), new NewsApiClient.ArticlesResponseCallback() {
-                    @Override
-                    public void onSuccess(ArticleResponse response) {
-                        String source;
-                        for (Article article : response.getArticles()) {
-                            source =
-                                    "Source{" +
-                                            "id='" + article.getSource().getId() + '\'' +
-                                            ", name='" + article.getSource().getName() + '\'' +
-                                            ", description='" + article.getSource().getDescription() + '\'' +
-                                            ", url='" + article.getSource().getUrl() + '\'' +
-                                            ", category='" + article.getSource().getCategory() + '\'' +
-                                            ", language='" + article.getSource().getLanguage() + '\'' +
-                                            ", country='" + article.getSource().getCountry() + '\'' +
-                                            '}';
-                            NewsModel newsModel = new NewsModel();
-                            newsModel.setAuthor(article.getAuthor());
-                            newsModel.setTitle(article.getTitle());
-                            newsModel.setContent(article.getContent());
-                            newsModel.setDescription(article.getContent());
-                            newsModel.setUrl(article.getUrl());
-                            newsModel.setUrlToImage(article.getUrlToImage());
-                            newsModel.setPublishedAt(article.getPublishedAt());
-                            newsModel.setSource(source);
-                            newsList.add(newsModel);
-                        }
-                    }
-
-                    @Override
-                    public void onFailure(Throwable throwable) {
-                        System.out.println(throwable.getMessage());
-                    }
-                }
-        );
+        return newsFile;
     }
 
 }
