@@ -19,20 +19,22 @@ import java.util.List;
 public class NewsLoading {
 
     private static MongoClient mongoClient = null;
+    private static MongoDatabase bigMongoNewsDB = null;
 
     protected void loadNewsCollection(List<String> keywords) {
         try {
             //Establish Single Shared MongoDB Connection to save resources
-            MongoDatabase bigMongoNewsDB = openMongoConnectionAndReturnDatabase();
+            bigMongoNewsDB = openMongoConnectionAndReturnDatabase();
+
             for (String keyword : keywords) {
                 try {
                     File newsFile = new File(keyword + ".json");
                     List<String> newsFileContentList = Files.readAllLines(newsFile.toPath());
 
                     //Create New Collection of the keyword, or replace if already exists
-                    MongoCollection<Document> mongoCollection = createOrReplaceMongoCollection(keyword, bigMongoNewsDB);
+                    MongoCollection<Document> mongoCollection = createOrReplaceMongoCollection(keyword);
 
-                    loadNewsCollectionToMongoDB(keyword, newsFileContentList, mongoCollection);
+                    insertNewsCollectionToMongoDB(keyword, newsFileContentList, mongoCollection);
                 } catch (IOException e) {
                     e.printStackTrace();
                     throw new RuntimeException(e);
@@ -45,15 +47,15 @@ public class NewsLoading {
         }
     }
 
+
+    //Reference: https://www.mongodb.com/docs/drivers/java/sync/upcoming/quick-start/
     private static MongoDatabase openMongoConnectionAndReturnDatabase() {
-        //Reference: https://www.mongodb.com/docs/drivers/java/sync/upcoming/quick-start/
-        //NOTE: Change Username, Password and HostName here
+        //NOTE: Change Username, Password and HostName/ClusterName here
         String mongoUsername = "mongo_root";
         String mongoPassword = "mongo_rootRV33";
         String mongoHostName = "dbwha-a3-problem1";
         String mongoURLString = "mongodb+srv://" + mongoUsername + ":" + mongoPassword + "@" + mongoHostName + ".wcvoewc.mongodb.net/?retryWrites=true&w=majority";
 
-        MongoDatabase bigMongoNewsDB = null;
         try {
             ConnectionString connectionString = new ConnectionString(mongoURLString);
 
@@ -66,14 +68,13 @@ public class NewsLoading {
             mongoClient = MongoClients.create(settings);
             bigMongoNewsDB = mongoClient.getDatabase("BigMongoNews");
 
-
         } catch (Exception e) {
             e.printStackTrace();
         }
         return bigMongoNewsDB;
     }
 
-    private static MongoCollection<Document> createOrReplaceMongoCollection(String keyword, MongoDatabase bigMongoNewsDB) {
+    private static MongoCollection<Document> createOrReplaceMongoCollection(String keyword) {
         MongoCollection<Document> mongoCollection;
         //Drop Collection if it already exists for the keyword
         MongoIterable<String> collectionList = bigMongoNewsDB.listCollectionNames();
@@ -89,13 +90,7 @@ public class NewsLoading {
         return mongoCollection;
     }
 
-    private static void closeMongoCollection() {
-        if (mongoClient != null) {
-            mongoClient.close();
-        }
-    }
-
-    private static void loadNewsCollectionToMongoDB(String keyword, List<String> newsFileStringList, MongoCollection<Document> mongoCollection) {
+    private static void insertNewsCollectionToMongoDB(String keyword, List<String> newsFileStringList, MongoCollection<Document> mongoCollection) {
         //Reference: https://www.mongodb.com/docs/drivers/java/sync/current/usage-examples/insertMany/
         try {
             //Convert JSON to MongoDB Document
@@ -106,10 +101,14 @@ public class NewsLoading {
 
             InsertManyResult result = mongoCollection.insertMany(newsFileDocumentList);
             System.out.println("Inserted document with ID: " + result.getInsertedIds() + " for keyword: " + keyword);
-        } catch (Exception me) {
-            me.printStackTrace();
-        } finally {
-            closeMongoCollection();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void closeMongoCollection() {
+        if (mongoClient != null) {
+            mongoClient.close();
         }
     }
 
